@@ -60,7 +60,7 @@ func Encode(ints []uint64) ([]byte, uint, error) {
 			v.Push(0)
 			v.Push(1)
 			v.Extend(byte(run), 4, bitvector.LSB0)
-		case run >= 16 && run < (1<<14):
+		case run >= 16:
 			v.Push(0)
 			v.Push(0)
 			buf := make([]byte, 10)
@@ -127,7 +127,8 @@ func Decode(buf []byte) (ints []uint64, err error) {
 						break
 					}
 
-					if len(buf) > 2 {
+					// 9 bytes is required to store math.MaxUint64 in a uvarint
+					if len(buf) > 9 {
 						return nil, ErrDecode
 					}
 				}
