@@ -542,6 +542,9 @@ func (sm *Miner) onCommitSuccess(ctx context.Context, dealCid cid.Cid, sector *s
 		resp.ProofInfo = &storagedeal.ProofInfo{
 			SectorID:          sector.SectorID,
 			CommitmentMessage: commitMessageCid,
+			CommD:             sector.CommD[:],
+			CommR:             sector.CommR[:],
+			CommRStar:         sector.CommRStar[:],
 		}
 		if pieceInfo != nil {
 			resp.ProofInfo.PieceInclusionProof = pieceInfo.InclusionProof
