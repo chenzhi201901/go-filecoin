@@ -333,7 +333,6 @@ var minerExports = exec.Exports{
 		Params: []abi.Type{},
 		Return: []abi.Type{abi.AttoFIL},
 	},
-	// verifyPieceInclusion is not in spec, but should be.
 	"doVerifyPieceInclusion": &exec.FunctionSignature{
 		Params: []abi.Type{abi.Bytes, abi.BytesAmount, abi.SectorID, abi.Bytes},
 		Return: []abi.Type{},
