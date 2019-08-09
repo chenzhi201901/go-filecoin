@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	cid "github.com/ipfs/go-cid"
 	cbor "github.com/ipfs/go-ipld-cbor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,7 +33,6 @@ func TestTriangleEncoding(t *testing.T) {
 	// see: https://github.com/filecoin-project/go-filecoin/issues/599
 
 	newAddress := address.NewForTestGetter()
-	newSignedMessage := NewSignedMessageForTestGetter(mockSigner)
 
 	testRoundTrip := func(t *testing.T, exp *Block) {
 		jb, err := json.Marshal(exp)
@@ -66,12 +64,12 @@ func TestTriangleEncoding(t *testing.T) {
 			Ticket:          []byte{0x01, 0x02, 0x03},
 			Height:          Uint64(2),
 			Nonce:           3,
-			Messages:        []*SignedMessage{newSignedMessage()},
-			MessageReceipts: []*MessageReceipt{{ExitCode: 1}},
-			Parents:         NewTipSetKey(SomeCid()),
+			Messages:        CidFromString(t, "somecid"),
+			MessageReceipts: CidFromString(t, "somecid"),
+			Parents:         NewTipSetKey(CidFromString(t, "somecid")),
 			ParentWeight:    Uint64(1000),
 			Proof:           NewTestPoSt(),
-			StateRoot:       SomeCid(),
+			StateRoot:       CidFromString(t, "somecid"),
 			Timestamp:       Uint64(1),
 		}
 		s := reflect.TypeOf(*b)
@@ -80,18 +78,6 @@ func TestTriangleEncoding(t *testing.T) {
 		require.Equal(t, 13, s.NumField()) // Note: this also counts private fields
 		testRoundTrip(t, b)
 	})
-}
-
-func TestBlockIsParentOf(t *testing.T) {
-	tf.UnitTest(t)
-
-	var p, c Block
-	assert.False(t, p.IsParentOf(c))
-	assert.False(t, c.IsParentOf(p))
-
-	c.Parents = NewTipSetKey(p.Cid())
-	assert.True(t, p.IsParentOf(c))
-	assert.False(t, c.IsParentOf(p))
 }
 
 func TestBlockString(t *testing.T) {
@@ -122,34 +108,25 @@ func TestBlockScore(t *testing.T) {
 	})
 }
 
-func cidFromString(input string) (cid.Cid, error) {
-	prefix := cid.V1Builder{Codec: cid.DagCBOR, MhType: DefaultHashFunction}
-	return prefix.Sum([]byte(input))
-}
-
 func TestDecodeBlock(t *testing.T) {
 	tf.UnitTest(t)
 
-	newSignedMessage := NewSignedMessageForTestGetter(mockSigner)
 	t.Run("successfully decodes raw bytes to a Filecoin block", func(t *testing.T) {
 		addrGetter := address.NewForTestGetter()
 
-		c1, err := cidFromString("a")
-		assert.NoError(t, err)
-		c2, err := cidFromString("b")
-		assert.NoError(t, err)
+		c1 := CidFromString(t, "a")
+		c2 := CidFromString(t, "b")
+		cM := CidFromString(t, "messages")
+		cR := CidFromString(t, "receipts")
 
 		before := &Block{
-			Miner:     addrGetter(),
-			Ticket:    []uint8{},
-			Parents:   NewTipSetKey(c1),
-			Height:    2,
-			Messages:  []*SignedMessage{newSignedMessage(), newSignedMessage()},
-			StateRoot: c2,
-			MessageReceipts: []*MessageReceipt{
-				{ExitCode: 1, Return: [][]byte{{1, 2}}},
-				{ExitCode: 1, Return: [][]byte{{1, 2, 3}}},
-			},
+			Miner:           addrGetter(),
+			Ticket:          []uint8{},
+			Parents:         NewTipSetKey(c1),
+			Height:          2,
+			Messages:        cM,
+			StateRoot:       c2,
+			MessageReceipts: cR,
 		}
 
 		after, err := DecodeBlock(before.ToNode().RawData())
@@ -168,10 +145,8 @@ func TestDecodeBlock(t *testing.T) {
 func TestEquals(t *testing.T) {
 	tf.UnitTest(t)
 
-	c1, err := cidFromString("a")
-	assert.NoError(t, err)
-	c2, err := cidFromString("b")
-	assert.NoError(t, err)
+	c1 := CidFromString(t, "a")
+	c2 := CidFromString(t, "b")
 
 	var n1 Uint64 = 1234
 	var n2 Uint64 = 9876
@@ -204,8 +179,6 @@ func TestParanoidPanic(t *testing.T) {
 func TestBlockJsonMarshal(t *testing.T) {
 	tf.UnitTest(t)
 
-	newSignedMessage := NewSignedMessageForTestGetter(mockSigner)
-
 	var parent, child Block
 	child.Miner = address.NewForTestGetter()()
 	child.Height = 1
@@ -213,15 +186,8 @@ func TestBlockJsonMarshal(t *testing.T) {
 	child.Parents = NewTipSetKey(parent.Cid())
 	child.StateRoot = parent.Cid()
 
-	message := newSignedMessage()
-
-	retVal := []byte{1, 2, 3}
-	receipt := &MessageReceipt{
-		ExitCode: 123,
-		Return:   [][]byte{retVal},
-	}
-	child.Messages = []*SignedMessage{message}
-	child.MessageReceipts = []*MessageReceipt{receipt}
+	child.Messages = CidFromString(t, "somecid")
+	child.MessageReceipts = CidFromString(t, "somecid")
 
 	marshalled, e1 := json.Marshal(&child)
 	assert.NoError(t, e1)
@@ -229,8 +195,8 @@ func TestBlockJsonMarshal(t *testing.T) {
 
 	assert.Contains(t, str, child.Miner.String())
 	assert.Contains(t, str, parent.Cid().String())
-	assert.Contains(t, str, message.From.String())
-	assert.Contains(t, str, message.To.String())
+	assert.Contains(t, str, child.Messages.String())
+	assert.Contains(t, str, child.MessageReceipts.String())
 
 	// marshal/unmarshal symmetry
 	var unmarshalled Block
@@ -240,7 +206,4 @@ func TestBlockJsonMarshal(t *testing.T) {
 	assert.Equal(t, child, unmarshalled)
 	AssertHaveSameCid(t, &child, &unmarshalled)
 	assert.True(t, child.Equals(&unmarshalled))
-
-	assert.Equal(t, uint8(123), unmarshalled.MessageReceipts[0].ExitCode)
-	assert.Equal(t, [][]byte{{1, 2, 3}}, unmarshalled.MessageReceipts[0].Return)
 }
