@@ -2,7 +2,6 @@ package porcelain
 
 import (
 	"context"
-	"fmt"
 	"github.com/filecoin-project/go-filecoin/actor/builtin/miner"
 	"github.com/filecoin-project/go-filecoin/address"
 	"github.com/filecoin-project/go-filecoin/protocol/storage/storagedeal"
@@ -119,8 +118,6 @@ func ClientVerifyStorageDeal(ctx context.Context, plumbing cvsdPlumbing, proposa
 
 	_, err = plumbing.MessageQuery(ctx, address.Undef, deal.Miner, "doVerifyPieceInclusion", params...)
 	if err != nil {
-		fmt.Printf("verify error: %v", err)
-
 		return err
 	}
 

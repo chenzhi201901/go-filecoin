@@ -188,8 +188,6 @@ format is specified with the --enc flag.
 			return err
 		}
 
-		fmt.Printf("storagedeal response: %+v", resp)
-
 		return re.Emit(resp)
 	},
 	Type: storagedeal.Response{},
@@ -235,11 +233,7 @@ is invalid.  Returns nil otherwise.
 
 		validateError := GetPorcelainAPI(env).ClientValidateDeal(req.Context, proposalCid, resp.ProofInfo)
 
-		if err := re.Emit(VerifyStorageDealResult{validateError == nil}); err != nil {
-			return err
-		}
-
-		return err
+		return re.Emit(VerifyStorageDealResult{validateError == nil})
 	},
 	Type: &VerifyStorageDealResult{},
 }
